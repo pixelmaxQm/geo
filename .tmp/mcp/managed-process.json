@@ -1,0 +1,12 @@
+{
+  "pid": 18324,
+  "startedAt": "2026-05-11T18:02:41+08:00",
+  "logPath": "d:\\geo\\.tmp\\mcp\\mcp.log",
+  "configPath": "d:\\geo\\server\\cmd\\mcp\\config.yaml",
+  "workDir": "d:\\geo\\server",
+  "command": "d:\\geo\\.tmp\\mcp\\gva-mcp-standalone.exe",
+  "args": [
+    "-config",
+    "d:\\geo\\server\\cmd\\mcp\\config.yaml"
+  ]
+}

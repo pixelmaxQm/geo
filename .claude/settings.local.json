@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(go get *)",
+      "Bash(go mod *)",
+      "Bash(GOPROXY=https://goproxy.cn,direct go get github.com/sashabaranov/go-openai@latest)",
+      "Bash(GOPROXY=https://goproxy.cn,direct go mod tidy)",
+      "Bash(go build *)",
+      "Bash(echo \"EXIT: $?\")"
+    ]
+  }
+}

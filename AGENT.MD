@@ -98,6 +98,8 @@
 - `aiDoc/modules/module-index.md`
 - `aiDoc/modules/backend-layer-rules.md`
 - `aiDoc/modules/plugin-development.md`
+- `aiDoc/modules/plugin-geo-monitor.md`
+- `aiDoc/modules/plugin-geo-monitor-analysis.md`
 - `aiDoc/frontend-backend/boundary.md`
 - `aiDoc/frontend-backend/frontend-rules.md`
 - `aiDoc/frontend-backend/frontend-utils.md`
