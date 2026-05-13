@@ -91,5 +91,6 @@
   "/src/plugin/auto/view/installPlugin/index.vue": "Index",
   "/src/plugin/auto/view/pubPlug/pubPlug.vue": "PubPlug",
   "/src/plugin/auto/view/skills/index.vue": "Index",
-  "/src/plugin/email/view/index.vue": "Email"
+  "/src/plugin/email/view/index.vue": "Email",
+  "/src/plugin/geoMonitor/view/platform.vue": "GeoMonitorPlatform"
 }

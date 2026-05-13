@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"bytes"
@@ -10,10 +10,7 @@ import (
 	"time"
 )
 
-// TestWenxinConnectivity 测试文心一言平台连通性
-// 百度千帆 API 使用自有鉴权格式，使用 net/http 直接请求
-func TestWenxinConnectivity(apiBase string, apiKey string) (bool, error) {
-	// 千帆 API v2 chat/completions 端点
+func TestWenxin(apiBase string, apiKey string) (bool, error) {
 	url := strings.TrimRight(apiBase, "/") + "/chat/completions?model=ernie-speed"
 
 	body := map[string]any{
@@ -49,7 +46,6 @@ func TestWenxinConnectivity(apiBase string, apiKey string) (bool, error) {
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return false, fmt.Errorf("API Key 无效 (HTTP %d): %s", resp.StatusCode, string(respBody))
 	default:
-		// 非 200 但也不是鉴权错误（如模型不存在等），说明网络是通的、Key 有效
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 			return true, nil
 		}

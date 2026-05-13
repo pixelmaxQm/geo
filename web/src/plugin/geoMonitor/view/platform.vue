@@ -15,6 +15,17 @@
             clearable
           />
         </el-form-item>
+        <el-form-item label="模式">
+          <el-select
+            v-model="searchInfo.mode"
+            placeholder="请选择"
+            clearable
+            style="width: 120px"
+          >
+            <el-option label="API" value="api" />
+            <el-option label="Playwright" value="playwright" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态">
           <el-select
             v-model="searchInfo.status"
@@ -70,7 +81,14 @@
           </template>
         </el-table-column>
         <el-table-column align="left" label="Code" prop="code" width="100" />
-        <el-table-column align="left" label="API 地址" prop="apiBase" min-width="240" show-overflow-tooltip />
+        <el-table-column align="left" label="采集模式" width="110">
+          <template #default="scope">
+            <el-tag :type="scope.row.mode === 'playwright' ? 'warning' : 'primary'" size="small">
+              {{ scope.row.mode === 'playwright' ? 'Playwright' : 'API' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column align="left" :label="'地址'" prop="apiBase" min-width="240" show-overflow-tooltip />
         <el-table-column align="left" label="状态" width="80">
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" size="small">
@@ -100,7 +118,7 @@
                 type="warning"
                 size="small"
               >
-                未配置Key
+                未配置
               </el-tag>
             </template>
             <template v-else>
@@ -211,14 +229,20 @@
             </el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="API 地址:" prop="apiBase">
+        <el-form-item label="采集模式:" prop="mode">
+          <el-radio-group v-model="formData.mode" @change="onModeChange">
+            <el-radio value="api">API 模式</el-radio>
+            <el-radio value="playwright">Playwright 模式</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item :label="formData.mode === 'playwright' ? '网页地址:' : 'API 地址:'" prop="apiBase">
           <el-input
             v-model="formData.apiBase"
             :clearable="true"
-            placeholder="如：https://api.deepseek.com"
+            :placeholder="formData.mode === 'playwright' ? '如：https://chat.deepseek.com' : '如：https://api.deepseek.com'"
           />
         </el-form-item>
-        <el-form-item label="API Key:">
+        <el-form-item v-if="formData.mode === 'api'" label="API Key:">
           <el-input
             v-model="formData.apiKey"
             type="password"
@@ -280,6 +304,7 @@
   const formData = ref({
     name: '',
     code: '',
+    mode: 'api',
     apiBase: '',
     apiKey: '',
     status: 1,
@@ -290,7 +315,8 @@
   const rule = reactive({
     name: [{ required: true, message: '请输入平台名称', trigger: 'blur' }],
     code: [{ required: true, message: '请选择平台渠道', trigger: 'change' }],
-    apiBase: [{ required: true, message: '请输入API地址', trigger: 'blur' }]
+    mode: [{ required: true, message: '请选择采集模式', trigger: 'change' }],
+    apiBase: [{ required: true, message: '请输入地址', trigger: 'blur' }]
   })
 
   const elFormRef = ref()
@@ -331,6 +357,9 @@
       params.name = searchInfo.value.keyword
       params.code = searchInfo.value.keyword
     }
+    if (searchInfo.value.mode) {
+      params.mode = searchInfo.value.mode
+    }
     if (searchInfo.value.status !== undefined && searchInfo.value.status !== null && searchInfo.value.status !== '') {
       params.status = searchInfo.value.status
     }
@@ -354,6 +383,7 @@
     formData.value = {
       name: '',
       code: '',
+      mode: 'api',
       apiBase: '',
       apiKey: '',
       status: 1,
@@ -371,7 +401,15 @@
     const preset = getPlatformByCode(code)
     if (preset) {
       formData.value.name = preset.name
-      formData.value.apiBase = preset.apiBase
+      formData.value.apiBase = formData.value.mode === 'playwright' ? preset.webBase : preset.apiBase
+    }
+  }
+
+  // 切换采集模式时自动替换为对应默认地址
+  const onModeChange = () => {
+    const preset = getPlatformByCode(formData.value.code)
+    if (preset) {
+      formData.value.apiBase = formData.value.mode === 'playwright' ? preset.webBase : preset.apiBase
     }
   }
 
@@ -438,14 +476,18 @@
   const testingAll = ref(false)
 
   const testConnectivity = async (row) => {
-    if (!row.apiKey) {
+    if (row.mode !== 'playwright' && !row.apiKey) {
       ElMessage({ type: 'warning', message: '请先配置 API Key' })
+      return
+    }
+    if (row.mode === 'playwright' && !row.apiBase) {
+      ElMessage({ type: 'warning', message: '请先配置网页地址' })
       return
     }
     const res = await testPlatform(row.ID)
     if (res.code === 0) {
-      testStatusMap.value[row.ID] = { status: 'connected', message: '连接成功' }
-      ElMessage({ type: 'success', message: '连接成功！API Key 有效' })
+      testStatusMap.value[row.ID] = { status: 'connected', message: row.mode === 'playwright' ? '网页可达' : '连接成功' }
+      ElMessage({ type: 'success', message: row.mode === 'playwright' ? '网页可达' : '连接成功！API Key 有效' })
     } else {
       testStatusMap.value[row.ID] = { status: 'failed', message: res.msg }
       ElMessage({ type: 'error', message: res.msg || '连接失败' })
@@ -466,7 +508,7 @@
       const unconfigured = res.data.filter((i) => i.status === 'unconfigured').length
       ElMessage({
         type: 'success',
-        message: `测试完成：已连接 ${connected} / 失败 ${failed} / 未配置 ${unconfigured}`
+        message: `测试完成：可用 ${connected} / 失败 ${failed} / 未配置 ${unconfigured}`
       })
     } else {
       ElMessage({ type: 'error', message: res.msg || '测试失败' })

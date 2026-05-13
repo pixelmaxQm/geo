@@ -6,5 +6,6 @@ type PlatformSearch struct {
 	request.PageInfo
 	Code   string `json:"code" form:"code"`
 	Name   string `json:"name" form:"name"`
+	Mode   string `json:"mode" form:"mode"`
 	Status *int   `json:"status" form:"status"`
 }

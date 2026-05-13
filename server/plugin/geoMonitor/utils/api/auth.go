@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"strings"
@@ -18,7 +18,6 @@ func isAuthError(err error) bool {
 			return true
 		}
 	}
-	// 检查 OpenAI SDK 的 APIError
 	if apiErr, ok := err.(*openai.APIError); ok {
 		code := apiErr.HTTPStatusCode
 		if code == 401 || code == 403 {

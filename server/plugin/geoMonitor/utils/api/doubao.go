@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"context"
@@ -9,9 +9,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// TestDeepSeekConnectivity 测试 DeepSeek 平台连通性
-// DeepSeek API 兼容 OpenAI 格式，使用 go-openai SDK
-func TestDeepSeekConnectivity(apiBase string, apiKey string) (bool, error) {
+func TestDoubao(apiBase string, apiKey string) (bool, error) {
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = strings.TrimRight(apiBase, "/") + "/v1"
 	client := openai.NewClientWithConfig(config)
@@ -20,7 +18,7 @@ func TestDeepSeekConnectivity(apiBase string, apiKey string) (bool, error) {
 	defer cancel()
 
 	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: "deepseek-chat",
+		Model: "deepseek-v3-250324",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: "user", Content: "ping"},
 		},

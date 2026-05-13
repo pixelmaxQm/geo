@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"bytes"
@@ -10,9 +10,7 @@ import (
 	"time"
 )
 
-// TestYuanbaoConnectivity 测试元宝平台连通性
-// 腾讯混元 API 使用自有鉴权格式，使用 net/http 直接请求
-func TestYuanbaoConnectivity(apiBase string, apiKey string) (bool, error) {
+func TestYuanbao(apiBase string, apiKey string) (bool, error) {
 	url := strings.TrimRight(apiBase, "/") + "/chat/completions"
 
 	body := map[string]any{

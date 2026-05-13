@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"context"
@@ -9,18 +9,16 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// TestQwenConnectivity 测试通义千问平台连通性
-// DashScope 提供 OpenAI 兼容端点 (/compatible-mode/v1)，使用 go-openai SDK
-func TestQwenConnectivity(apiBase string, apiKey string) (bool, error) {
+func TestKimi(apiBase string, apiKey string) (bool, error) {
 	config := openai.DefaultConfig(apiKey)
-	config.BaseURL = strings.TrimRight(apiBase, "/")
+	config.BaseURL = strings.TrimRight(apiBase, "/") + "/v1"
 	client := openai.NewClientWithConfig(config)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: "qwen-turbo",
+		Model: "moonshot-v1-8k",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: "user", Content: "ping"},
 		},

@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"context"
@@ -9,9 +9,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// TestDoubaoConnectivity 测试豆包平台连通性
-// 火山引擎 ARK API v3 兼容 OpenAI 格式，使用 go-openai SDK
-func TestDoubaoConnectivity(apiBase string, apiKey string) (bool, error) {
+func TestDeepSeek(apiBase string, apiKey string) (bool, error) {
 	config := openai.DefaultConfig(apiKey)
 	config.BaseURL = strings.TrimRight(apiBase, "/") + "/v1"
 	client := openai.NewClientWithConfig(config)
@@ -20,7 +18,7 @@ func TestDoubaoConnectivity(apiBase string, apiKey string) (bool, error) {
 	defer cancel()
 
 	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: "deepseek-v3-250324",
+		Model: "deepseek-chat",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: "user", Content: "ping"},
 		},

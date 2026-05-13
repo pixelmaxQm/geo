@@ -1,4 +1,4 @@
-package utils
+package api
 
 import (
 	"context"
@@ -9,18 +9,16 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// TestKimiConnectivity 测试 Kimi 平台连通性
-// Moonshot API 兼容 OpenAI 格式，使用 go-openai SDK
-func TestKimiConnectivity(apiBase string, apiKey string) (bool, error) {
+func TestZhipu(apiBase string, apiKey string) (bool, error) {
 	config := openai.DefaultConfig(apiKey)
-	config.BaseURL = strings.TrimRight(apiBase, "/") + "/v1"
+	config.BaseURL = strings.TrimRight(apiBase, "/") + "/"
 	client := openai.NewClientWithConfig(config)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	_, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: "moonshot-v1-8k",
+		Model: "glm-4-flash",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: "user", Content: "ping"},
 		},

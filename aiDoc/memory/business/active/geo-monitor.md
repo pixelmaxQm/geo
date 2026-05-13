@@ -40,6 +40,11 @@
 - 已完成功能板块依赖分析（`aiDoc/modules/plugin-geo-monitor-analysis.md`），按 6 个功能板块组织
 - GVA 生成器已创建插件骨架（13 个文件位于 `server/plugin/geoMonitor/`）
 - 板块一已完成：平台管理（2026-05-11）
+- 板块一增强：平台配置增加 api/playwright 双模式（2026-05-13）
+  - Platform 模型新增 `Mode` 字段，`(code, mode)` 复合唯一索引
+  - 同一个平台可同时存在 API 和 Playwright 两个渠道
+  - 前端表单/搜索/表格/连通性测试全部适配双模式
+  - Playwright 连通性测试目前为 HTTP HEAD 可达性检查，真正浏览器抓取在板块三实现
 
 ## 后续待办（按功能板块顺序）
 
