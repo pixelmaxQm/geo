@@ -1,33 +1,12 @@
 package playwright
 
-import (
-	"fmt"
-	"time"
-
-	pw "github.com/playwright-community/playwright-go"
-)
+// CollectDeepSeek 通过 Playwright 访问 DeepSeek 网页版并采集回答
+func CollectDeepSeek(webUrl string, prompt string, screenshotPath string) (*PageCollectResult, error) {
+	return collectWithPage(webUrl, prompt, screenshotPath, "#chat-input, textarea[placeholder], .chat-input")
+}
 
 // TestDeepSeek 通过 Playwright 访问 DeepSeek 网页版
 func TestDeepSeek(webUrl string) (bool, error) {
-	page, cleanup, err := NewPage()
-	if err != nil {
-		return false, err
-	}
-	defer cleanup()
-
-	if _, err := page.Goto(webUrl, pw.PageGotoOptions{
-		Timeout:   pw.Float(30000),
-		WaitUntil: pw.WaitUntilStateDomcontentloaded,
-	}); err != nil {
-		return false, fmt.Errorf("DeepSeek 页面加载失败: %w", err)
-	}
-
-	time.Sleep(2 * time.Second)
-	if _, err := page.WaitForSelector("#chat-input, textarea[placeholder], .chat-input", pw.PageWaitForSelectorOptions{
-		Timeout: pw.Float(10000),
-	}); err != nil {
-		return false, fmt.Errorf("DeepSeek 页面结构异常: %w", err)
-	}
-
-	return true, nil
+	_, err := CollectDeepSeek(webUrl, "ping", "")
+	return err == nil, err
 }

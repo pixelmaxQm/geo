@@ -151,7 +151,7 @@ func (a *platform) DeletePlatform(c *gin.Context) {
 // @accept    application/json
 // @Produce   application/json
 // @Param     id   path      int  true  "平台ID"
-// @Success   200  {object}  response.Response{msg=string}  "连接成功"
+// @Success   200  {object}  response.Response{data=service.PlatformTestResult,msg=string}  "测试完成"
 // @Router    /geoMonitor/platform/test/{id} [post]
 func (a *platform) TestPlatform(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
@@ -159,17 +159,13 @@ func (a *platform) TestPlatform(c *gin.Context) {
 		response.FailWithMessage("参数错误", c)
 		return
 	}
-	ok, err := platformService.TestConnectivity(uint(id))
+	result, err := platformService.TestConnectivity(uint(id))
 	if err != nil {
 		global.GVA_LOG.Error("连通性测试失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	if ok {
-		response.OkWithMessage("连接成功", c)
-	} else {
-		response.FailWithMessage("连接失败", c)
-	}
+	response.OkWithDetailed(result, result.Message, c)
 }
 
 // TestAllPlatforms 一键测试所有平台连通性

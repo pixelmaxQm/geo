@@ -96,6 +96,23 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column align="left" label="登录态" width="110">
+          <template #default="scope">
+            <template v-if="scope.row.mode !== 'playwright'">
+              <span class="text-gray-400 text-sm">-</span>
+            </template>
+            <template v-else-if="scope.row.currentAuthorizedSession">
+              <el-tag type="success" size="small">
+                已授权
+              </el-tag>
+            </template>
+            <template v-else>
+              <el-tag type="info" size="small">
+                未登录
+              </el-tag>
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column align="left" label="连通状态" width="110">
           <template #default="scope">
             <template v-if="testStatusMap[scope.row.ID]">
@@ -132,8 +149,18 @@
             {{ formatDate(scope.row.CreatedAt) }}
           </template>
         </el-table-column>
-        <el-table-column align="left" label="操作" fixed="right" min-width="260">
+        <el-table-column align="left" label="操作" fixed="right" min-width="340">
           <template #default="scope">
+            <el-button
+              v-if="scope.row.mode === 'playwright'"
+              type="primary"
+              link
+              icon="user"
+              class="table-button"
+              @click="openAuthDialog(scope.row)"
+            >
+              登录授权
+            </el-button>
             <el-button
               type="primary"
               link
@@ -175,6 +202,30 @@
         />
       </div>
     </div>
+
+    <el-dialog v-model="testResultDialogVisible" title="测试结果" width="720px" destroy-on-close>
+      <div v-if="testResultData">
+        <div class="mb-3">
+          <el-tag :type="testResultData.ok ? 'success' : (testResultData.status === 'unconfigured' ? 'warning' : 'danger')" size="small">
+            {{ testResultData.ok ? '成功' : (testResultData.status === 'unconfigured' ? '未配置' : '失败') }}
+          </el-tag>
+          <span class="ml-3 text-sm">{{ testResultData.message || '-' }}</span>
+        </div>
+        <div class="mb-3 text-sm text-gray-500" v-if="testResultData.screenshotPath">
+          快照路径：{{ testResultData.screenshotPath }}
+        </div>
+        <div v-if="testResultData.screenshotPath" class="mb-4">
+          <img :src="getUrl(testResultData.screenshotPath)" alt="测试快照" style="width: 100%; border-radius: 8px; border: 1px solid #e5e7eb;" />
+        </div>
+        <el-input
+          v-if="testResultData.rawResponse"
+          :model-value="testResultData.rawResponse"
+          type="textarea"
+          :rows="8"
+          readonly
+        />
+      </div>
+    </el-dialog>
 
     <el-drawer
       v-model="dialogFormVisible"
@@ -278,6 +329,29 @@
         </el-form-item>
       </el-form>
     </el-drawer>
+
+    <el-dialog v-model="authDialogVisible" title="Playwright 登录授权" width="560px" @closed="stopAuthPolling">
+      <div v-if="authSession">
+        <el-alert
+          class="mb-4"
+          :type="authSession.status === 'authorized' ? 'success' : authSession.status === 'failed' || authSession.status === 'expired' ? 'error' : 'info'"
+          :closable="false"
+          :title="authStatusText"
+        />
+        <div v-if="authSession.qrImagePath || authSession.screenshotPath" class="text-center">
+          <img :src="getUrl(authSession.qrImagePath || authSession.screenshotPath)" style="max-width: 100%; max-height: 360px; border: 1px solid #eee" />
+        </div>
+        <el-empty v-else description="正在生成二维码或登录页截图" />
+        <div v-if="authSession.expiresAt && authSession.status === 'authorized'" class="mt-3 text-xs text-gray-500">
+          登录态有效期至：{{ formatDate(authSession.expiresAt) }}
+        </div>
+        <div v-if="authSession.errorMsg" class="mt-4 text-red-500">{{ authSession.errorMsg }}</div>
+      </div>
+      <template #footer>
+        <el-button @click="refreshAuthSession">刷新</el-button>
+        <el-button type="primary" @click="authDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -291,11 +365,17 @@
     testPlatform,
     testAllPlatforms
   } from '@/plugin/geoMonitor/api/platform'
+  import {
+    startPlaywrightSession,
+    getPlaywrightSession,
+    refreshPlaywrightSession
+  } from '@/plugin/geoMonitor/api/playwrightSession'
   import { platformOptions, getPlatformByCode } from '@/plugin/geoMonitor/utils/platformConfig'
   import { formatDate } from '@/utils/format'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { Icon } from '@iconify/vue'
-  import { ref, reactive } from 'vue'
+  import { ref, reactive, computed } from 'vue'
+import { getUrl } from '@/utils/image'
 
   defineOptions({
     name: 'GeoMonitorPlatform'
@@ -474,6 +554,8 @@
 
   const testStatusMap = ref({})
   const testingAll = ref(false)
+  const testResultDialogVisible = ref(false)
+  const testResultData = ref(null)
 
   const testConnectivity = async (row) => {
     if (row.mode !== 'playwright' && !row.apiKey) {
@@ -485,13 +567,127 @@
       return
     }
     const res = await testPlatform(row.ID)
-    if (res.code === 0) {
-      testStatusMap.value[row.ID] = { status: 'connected', message: row.mode === 'playwright' ? '网页可达' : '连接成功' }
-      ElMessage({ type: 'success', message: row.mode === 'playwright' ? '网页可达' : '连接成功！API Key 有效' })
-    } else {
-      testStatusMap.value[row.ID] = { status: 'failed', message: res.msg }
-      ElMessage({ type: 'error', message: res.msg || '连接失败' })
+    const data = res.data || {
+      id: row.ID,
+      code: row.code,
+      ok: false,
+      status: 'failed',
+      message: res.msg || '连接失败',
+      screenshotPath: '',
+      rawResponse: ''
     }
+    testStatusMap.value[row.ID] = { status: data.status, message: data.message }
+    testResultData.value = data
+    testResultDialogVisible.value = true
+    if (data.ok) {
+      ElMessage({ type: 'success', message: data.message || (row.mode === 'playwright' ? '网页可达' : '连接成功') })
+    } else {
+      ElMessage({ type: data.status === 'unconfigured' ? 'warning' : 'error', message: data.message || '连接失败' })
+    }
+  }
+
+
+
+  const normalizeAssetPath = (path) => {
+    if (!path) return ''
+    if (path.startsWith('http') || path.startsWith('/')) return path
+    return `/${path}`
+  }
+
+  const authDialogVisible = ref(false)
+  const authSession = ref(null)
+  const authPollingTimer = ref(null)
+  const authPlatformId = ref(0)
+
+  const authStatusText = computed(() => {
+    const status = authSession.value?.status
+    switch (status) {
+      case 'authorized':
+        return '已存在可复用登录态，后续采集会自动使用该登录态'
+      case 'failed':
+        return '授权失败，请刷新后重试'
+      case 'expired':
+        return '二维码或登录会话已过期，请刷新后重试'
+      case 'waiting_scan':
+        return '请使用对应平台 App 扫码登录'
+      default:
+        return '正在准备登录授权'
+    }
+  })
+
+  const stopAuthPolling = () => {
+    if (authPollingTimer.value) {
+      clearInterval(authPollingTimer.value)
+      authPollingTimer.value = null
+    }
+  }
+
+  const pollAuthSession = (sessionId) => {
+    stopAuthPolling()
+    authPollingTimer.value = setInterval(async () => {
+      const res = await getPlaywrightSession(sessionId)
+      if (res.code !== 0) return
+      authSession.value = {
+        ...res.data,
+        qrImagePath: res.data.qrImagePath ? `${res.data.qrImagePath}?t=${Date.now()}` : '',
+        screenshotPath: res.data.screenshotPath ? `${res.data.screenshotPath}?t=${Date.now()}` : ''
+      }
+      if (['authorized', 'failed', 'expired'].includes(res.data.status)) {
+        stopAuthPolling()
+        getTableData()
+      }
+    }, 2000)
+  }
+
+  const openAuthDialog = async (row) => {
+    authPlatformId.value = row.ID
+    if (row.currentAuthorizedSession) {
+      authSession.value = {
+        ID: row.currentAuthorizedSession.id,
+        status: row.currentAuthorizedSession.status,
+        qrImagePath: row.currentAuthorizedSession.qrImagePath ? `${row.currentAuthorizedSession.qrImagePath}?t=${Date.now()}` : '',
+        screenshotPath: row.currentAuthorizedSession.screenshotPath ? `${row.currentAuthorizedSession.screenshotPath}?t=${Date.now()}` : '',
+        expiresAt: row.currentAuthorizedSession.expiresAt
+      }
+      authDialogVisible.value = true
+      return
+    }
+    const res = await startPlaywrightSession({ platformId: row.ID })
+    if (res.code !== 0) return
+    authSession.value = {
+      ID: res.data.sessionId,
+      status: res.data.status,
+      qrImagePath:  res.data.qrImagePath ? `${res.data.qrImagePath}?t=${Date.now()}` : '',
+      screenshotPath: res.data.screenshotPath ? `${res.data.screenshotPath}?t=${Date.now()}` : ''
+    }
+    authDialogVisible.value = true
+    if (res.data.status !== 'authorized') {
+      pollAuthSession(res.data.sessionId)
+    }
+  }
+
+  const refreshAuthSession = async () => {
+    const id = authSession.value?.ID || authSession.value?.id
+    if (id && authSession.value?.status !== 'authorized') {
+      const res = await refreshPlaywrightSession(id)
+      if (res.code !== 0) return
+      authSession.value = res.data
+      pollAuthSession(id)
+      return
+    }
+    if (!authPlatformId.value) return
+    const res = await startPlaywrightSession({ platformId: authPlatformId.value })
+    if (res.code !== 0) return
+    authSession.value = {
+      ID: res.data.sessionId,
+      status: res.data.status,
+      qrImagePath: res.data.qrImagePath ? `${res.data.qrImagePath}?t=${Date.now()}` : '',
+      screenshotPath: res.data.screenshotPath ? `${res.data.screenshotPath}?t=${Date.now()}` : ''
+    }
+    if (res.data.status !== 'authorized') {
+      pollAuthSession(res.data.sessionId)
+    }
+    getTableData()
   }
 
   const testAll = async () => {

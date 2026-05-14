@@ -12,4 +12,7 @@ func Router(engine *gin.Engine) {
 	private := engine.Group(global.GVA_CONFIG.System.RouterPrefix).Group("")
 	private.Use(middleware.JWTAuth()).Use(middleware.CasbinHandler())
 	router.Router.Platform.Init(public, private)
+	router.Router.Topic.Init(public, private)
+	router.Router.Collect.Init(public, private)
+	router.Router.PlaywrightSession.Init(public, private)
 }

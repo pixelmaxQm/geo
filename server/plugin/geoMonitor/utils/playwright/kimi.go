@@ -1,33 +1,12 @@
 package playwright
 
-import (
-	"fmt"
-	"time"
-
-	pw "github.com/playwright-community/playwright-go"
-)
+// CollectKimi 通过 Playwright 访问 Kimi 网页版并采集回答
+func CollectKimi(webUrl string, prompt string, screenshotPath string) (*PageCollectResult, error) {
+	return collectWithPage(webUrl, prompt, screenshotPath, "textarea, [contenteditable], .chat-input")
+}
 
 // TestKimi 通过 Playwright 访问 Kimi 网页版
 func TestKimi(webUrl string) (bool, error) {
-	page, cleanup, err := NewPage()
-	if err != nil {
-		return false, err
-	}
-	defer cleanup()
-
-	if _, err := page.Goto(webUrl, pw.PageGotoOptions{
-		Timeout:   pw.Float(30000),
-		WaitUntil: pw.WaitUntilStateDomcontentloaded,
-	}); err != nil {
-		return false, fmt.Errorf("Kimi页面加载失败: %w", err)
-	}
-
-	time.Sleep(2 * time.Second)
-	if _, err := page.WaitForSelector("textarea, [contenteditable], .chat-input", pw.PageWaitForSelectorOptions{
-		Timeout: pw.Float(10000),
-	}); err != nil {
-		return false, fmt.Errorf("Kimi页面结构异常: %w", err)
-	}
-
-	return true, nil
+	_, err := CollectKimi(webUrl, "ping", "")
+	return err == nil, err
 }

@@ -52,12 +52,21 @@ func Launch() error {
 
 // NewPage 创建新页面，返回 page 和 cleanup 函数
 func NewPage() (pw.Page, func(), error) {
+	return NewPageWithStorageState("")
+}
+
+// NewPageWithStorageState 创建可加载登录态的新页面
+func NewPageWithStorageState(storageStatePath string) (pw.Page, func(), error) {
 	if browser == nil {
 		return nil, nil, fmt.Errorf("浏览器未启动，请先调用 Launch()")
 	}
-	ctx, err := browser.NewContext(pw.BrowserNewContextOptions{
+	options := pw.BrowserNewContextOptions{
 		UserAgent: pw.String("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
-	})
+	}
+	if storageStatePath != "" {
+		options.StorageStatePath = pw.String(storageStatePath)
+	}
+	ctx, err := browser.NewContext(options)
 	if err != nil {
 		return nil, nil, fmt.Errorf("创建浏览器上下文失败: %w", err)
 	}

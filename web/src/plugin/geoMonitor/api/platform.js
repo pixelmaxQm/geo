@@ -107,3 +107,11 @@ export const testAllPlatforms = () => {
     method: 'post'
   })
 }
+
+export const getEnabledPlatformsByMode = (mode) => {
+  return service({
+    url: '/geoMonitor/platform/list',
+    method: 'get',
+    params: { page: 1, pageSize: 1000, mode, status: 1 }
+  })
+}

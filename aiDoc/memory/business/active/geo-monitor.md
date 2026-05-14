@@ -43,8 +43,15 @@
 - 板块一增强：平台配置增加 api/playwright 双模式（2026-05-13）
   - Platform 模型新增 `Mode` 字段，`(code, mode)` 复合唯一索引
   - 同一个平台可同时存在 API 和 Playwright 两个渠道
-  - 前端表单/搜索/表格/连通性测试全部适配双模式
-  - Playwright 连通性测试目前为 HTTP HEAD 可达性检查，真正浏览器抓取在板块三实现
+  - utils 拆分为 `utils/api/`（8 个文件）和 `utils/playwright/`（8 个文件）两个子包
+  - 前端表单/搜索/表格/连通性测试全部适配双模式，切换模式自动替换默认地址
+  - Playwright 连通性测试使用 playwright-go 真实浏览器访问，每个平台独立 selector 等待
+  - 分析文档 `aiDoc/modules/plugin-geo-monitor-analysis.md` 已同步更新设计决策
+- 板块三采集增强需求已确认（2026-05-14）
+  - `/geoMonitor/collect/run` 需要完整记录 API 联网搜索/引用结果：平台原始响应保存到 `rawResponse`，标准化有序引用源/搜索列表保存到 `citations`
+  - Playwright 采集失败也必须落库并保存失败日志、页面诊断和失败截图
+  - 新增二维码优先的 Playwright 登录授权能力，扫码成功后保存 `storageState`，后续采集自动加载登录态
+  - 设计文档：`docs/superpowers/specs/2026-05-14-geo-monitor-collect-run-reliability-design.md`
 
 ## 后续待办（按功能板块顺序）
 

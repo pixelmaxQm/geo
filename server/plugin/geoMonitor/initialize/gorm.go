@@ -19,6 +19,10 @@ func Gorm(ctx context.Context) {
 
 	err := global.GVA_DB.WithContext(ctx).AutoMigrate(
 		new(model.Platform),
+		new(model.MonitorTopic),
+		new(model.CollectionTask),
+		new(model.CollectionResult),
+		new(model.PlaywrightAuthSession),
 	)
 	if err != nil {
 		err = errors.Wrap(err, "注册表失败!")

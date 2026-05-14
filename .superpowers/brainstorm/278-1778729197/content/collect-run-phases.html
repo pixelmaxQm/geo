@@ -1,0 +1,60 @@
+<h2>/collect/run 分阶段修复方案</h2>
+<p class="subtitle">先保证采集结果完整和失败可诊断，再做二维码登录态。请看整体流程是否符合你的预期。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">阶段 1：采集结果与失败日志</div>
+    <div class="mockup-body">
+      <div class="section">
+        <div class="label">API 模式</div>
+        <div class="placeholder">平台原始响应 → rawResponse 全量保存</div>
+        <div class="placeholder">搜索/引用列表 → 按返回顺序标准化保存到 citations</div>
+        <div class="placeholder">前端结果表 → 可展开查看全部引用源</div>
+      </div>
+      <div class="section">
+        <div class="label">Playwright 模式</div>
+        <div class="placeholder">页面加载 / 登录阻断 / 输入失败 / 超时 → 全部写入 run log</div>
+        <div class="placeholder">失败时截图 → screenshotPath 保存</div>
+        <div class="placeholder">result.status=failed，errorMsg + rawResponse 可诊断</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">阶段 2：二维码登录态</div>
+    <div class="mockup-body">
+      <div class="section">
+        <div class="label">平台配置页 / 登录弹窗</div>
+        <div class="placeholder">选择 Playwright 平台 → 点击“登录授权”</div>
+        <div class="placeholder">后端打开登录页 → 截取二维码图片</div>
+        <div class="placeholder">前端展示二维码 + 登录状态轮询</div>
+        <div class="placeholder">扫码成功 → 保存 storageState/cookie/session</div>
+        <div class="placeholder">后续采集 → 自动加载该平台登录态</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>按这个两阶段做</h3>
+      <p>阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>登录能力提前</h3>
+      <p>第一阶段就把登录任务和 session 保存一起做，避免 Playwright 测试反复失败。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>先只做 API</h3>
+      <p>先把 API 搜索/引用内容完整存储跑通，Playwright 另起任务。</p>
+    </div>
+  </div>
+</div>

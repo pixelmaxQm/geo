@@ -24,81 +24,153 @@ server/plugin/geoMonitor/
 
 ---
 
-## 功能板块一：平台管理
+## 功能板块一：平台管理 ✅ 已完成
+
+> 2026-05-11 完成基础 CRUD。2026-05-13 完成 api/playwright 双模式改造。
 
 ### 对应后台页面
 
-**平台配置页** — 列表展示所有平台，支持新增/编辑/删除。每条记录定义接入一个 AI 平台所需的全部信息。
+**平台配置页** — 列表展示所有平台，支持新增/编辑/删除。每条记录定义接入一个 AI 平台的渠道：API 模式（官方 API + Key）或 Playwright 模式（网页地址 + 真实浏览器抓取）。
 
 ### 页面功能
 
-- 平台列表（表格）：名称、code、API 地址、状态、创建时间
-- 新增/编辑表单：平台名称、唯一 code、API 地址、API Key、备注、启用/停用
+- 平台列表（表格）：名称、code、采集模式（API/Playwright 标签）、地址、状态、连通状态、排序、创建时间
+- 搜索筛选：关键词、**采集模式**、启用/停用
+- 新增/编辑表单：
+  - 平台渠道下拉（7 个预设平台，编辑时锁定）
+  - **采集模式 Radio**（API 模式 / Playwright 模式），切换时自动替换对应默认地址
+  - 地址字段（动态标签：API 模式下"API 地址"，Playwright 下"网页地址"）
+  - API Key 字段（**仅 API 模式下显示**）
+  - 状态开关、排序、备注
 - 删除（软删除）
-- 连通性测试按钮：发一条简单请求验证 API Key 是否有效
+- **单平台连通性测试**：API 模式发 chat ping 验证 Key，Playwright 模式用 playwright-go 真实浏览器访问
+- **一键测试所有**：批量返回每个平台的连通状态
 
 ### 需要的后端文件
 
 ```
-model/platform.go            # 数据模型
-model/request/platform.go    # 请求参数结构体
-service/platform.go          # 业务逻辑
+model/platform.go            # 数据模型（含 Mode 字段 + 复合唯一索引）
+model/request/platform.go    # 请求参数结构体（含 Mode 筛选）
+service/platform.go          # 业务逻辑（含 doTest/testPlaywright 双模式分发）
 api/platform.go              # HTTP 接口
+initialize/gorm.go           # 旧索引迁移 + AutoMigrate
 ```
 
 ### 数据模型
 
 ```go
-// Platform 平台定义
 type Platform struct {
     global.GVA_MODEL
-    Code      string  // 唯一标识，如 "deepseek"、"qwen"、"zhipu"
-    Name      string  // 显示名称，如 "DeepSeek"、"通义千问"
-    ApiBase   string  // API 端点地址
-    ApiKey    string  // API Key（加密存储）
-    Status    int     // 状态: 1启用 0停用
-    Sort      int     // 排序
-    Remark    string  // 备注
+    Code    string `gorm:"uniqueIndex:idx_code_mode"` // 平台唯一标识
+    Name    string // 显示名称
+    Mode    string `gorm:"default:api;uniqueIndex:idx_code_mode"` // api / playwright
+    ApiBase string // API 端点地址 或 网页 URL（视 Mode 而定）
+    ApiKey  string // API Key（API 模式使用，Playwright 模式隐藏）
+    Status  int    `gorm:"default:1"` // 1启用 0停用
+    Sort    int    `gorm:"default:0"`
+    Remark  string
 }
 ```
+
+**关键设计决策：**
+- `(code, mode)` 复合唯一索引 — 同一平台可同时存在 api 和 playwright 两条记录，视为两个独立渠道
+- `ApiBase` 字段复用：api 模式下存 API 端点，playwright 模式下存网页 URL；前端表单标签随 mode 动态切换
+- 旧版单列唯一索引 `idx_gva_geo_monitor_platforms_code` 在 initialize/gorm.go 中自动检测并删除
 
 ### 后端接口
 
 ```
-GET    /geoMonitor/platform/list       — 平台列表（分页）
+GET    /geoMonitor/platform/list       — 平台列表（分页 + code/name/mode/status 筛选）
 GET    /geoMonitor/platform/:id        — 平台详情
 POST   /geoMonitor/platform            — 新增平台
 PUT    /geoMonitor/platform/:id        — 编辑平台
 DELETE /geoMonitor/platform/:id        — 删除平台
-POST   /geoMonitor/platform/test/:id   — 连通性测试
+POST   /geoMonitor/platform/test/:id   — 连通性测试（自动按 mode 分发）
+POST   /geoMonitor/platform/testAll    — 一键测试所有平台
+```
+
+### 连通性测试分发逻辑
+
+```
+TestConnectivity(id)
+  └→ p.Mode == "api"       → doTest()    → api.Test{Platform}(apiBase, apiKey)
+  └→ p.Mode == "playwright" → testPlaywright() → playwright.Test{Platform}(webUrl)
+                                                    ↓
+                                         NewPage() → pw.Run() → Chromium headless
+                                                    → page.Goto() → WaitForSelector()
 ```
 
 ### 依赖的 GVA 模块
 
 | 模块 | 用途 |
 |---|---|
-| `global.GVA_DB` | GORM CRUD |
-| `global.GVA_MODEL` | 嵌入基础字段（ID, CreatedAt, UpdatedAt, DeletedAt） |
+| `global.GVA_DB` | GORM CRUD + index migration |
+| `global.GVA_MODEL` | 嵌入基础字段 |
 | `utils/request` | 分页请求结构 |
 | `utils/response` | 统一响应 `{ code, data, msg }` |
 
 ### 依赖的第三方库
 
-无额外依赖。纯 HTTP 连通性测试用标准库 `net/http`。
+| 库 | 用途 | 模式 |
+|---|---|---|
+| `github.com/sashabaranov/go-openai` | OpenAI 兼容 SDK（DeepSeek/千问/智谱/豆包/Kimi） | API |
+| `github.com/playwright-community/playwright-go` | 驱动真实 Chromium 浏览器 | Playwright |
+
+### 工具包结构
+
+```
+utils/
+├── api/                         # API SDK 模式工具（package api）
+│   ├── auth.go                  # isAuthError 鉴权错误检测
+│   ├── deepseek.go              # TestDeepSeek(apiBase, apiKey)
+│   ├── qwen.go                  # TestQwen(apiBase, apiKey)
+│   ├── zhipu.go                 # TestZhipu(apiBase, apiKey)
+│   ├── doubao.go                # TestDoubao(apiBase, apiKey)
+│   ├── kimi.go                  # TestKimi(apiBase, apiKey)
+│   ├── wenxin.go                # TestWenxin(apiBase, apiKey)
+│   └── yuanbao.go               # TestYuanbao(apiBase, apiKey)
+└── playwright/                  # Playwright 浏览器模式工具（package playwright）
+    ├── playwright.go            # 浏览器生命周期：Install/Launch/NewPage/Close
+    ├── deepseek.go              # TestDeepSeek(webUrl) → 等待 #chat-input
+    ├── qwen.go                  # TestQwen(webUrl) → 等待 .editor
+    ├── zhipu.go                 # TestZhipu(webUrl) → 等待 .input-area
+    ├── doubao.go                # TestDoubao(webUrl) → 等待 .chat-input-box
+    ├── kimi.go                  # TestKimi(webUrl) → 等待 .chat-input
+    ├── wenxin.go                # TestWenxin(webUrl) → 等待 .yiyan-input
+    └── yuanbao.go               # TestYuanbao(webUrl) → 等待 .input-box
+```
+
+> 每个平台有独立的 CSS selector 等待逻辑。导入别名 `pw "github.com/playwright-community/playwright-go"` 避免与包名冲突。
 
 ### 种子数据
 
-插件安装时预置 7 个平台的基础信息（不含 API Key，由管理员后续填入）：
+插件安装时预置 7 个平台的 **API 模式** 基础信息（不含 API Key，由管理员后续填入）：
 
-| code | name | api_base |
+| code | name | mode | api_base |
+|---|---|---|---|
+| deepseek | DeepSeek | api | `https://api.deepseek.com` |
+| qwen | 通义千问 | api | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| zhipu | 智谱GLM | api | `https://open.bigmodel.cn/api/paas/v4` |
+| doubao | 豆包 | api | `https://ark.cn-beijing.volces.com/api/v3` |
+| kimi | Kimi | api | `https://api.moonshot.cn` |
+| wenxin | 文心一言 | api | `https://qianfan.baidubce.com/v2` |
+| yuanbao | 元宝 | api | `https://hunyuan.tencentcloudapi.com` |
+
+种子检查条件已适配复合唯一键：`WHERE code = ? AND mode = ?`。
+
+### 前端预设（platformConfig.js）
+
+每个预设平台同时提供 API 和 Playwright 默认地址，切换模式时自动填充：
+
+| code | apiBase (API 端点) | webBase (Playwright 网页) |
 |---|---|---|
-| deepseek | DeepSeek | `https://api.deepseek.com` |
-| qwen | 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| zhipu | 智谱GLM | `https://open.bigmodel.cn/api/paas/v4` |
-| doubao | 豆包 | `https://ark.cn-beijing.volces.com/api/v3` |
-| kimi | Kimi | `https://api.moonshot.cn` |
-| wenxin | 文心一言 | `https://qianfan.baidubce.com/v2` |
-| yuanbao | 元宝 | 腾讯混元 API |
+| deepseek | `https://api.deepseek.com` | `https://chat.deepseek.com` |
+| qwen | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `https://www.qianwen.com/` |
+| zhipu | `https://open.bigmodel.cn/api/paas/v4` | `https://chatglm.cn` |
+| doubao | `https://ark.cn-beijing.volces.com/api/v3` | `https://www.doubao.com/chat/` |
+| kimi | `https://api.moonshot.cn` | `https://www.kimi.com/` |
+| wenxin | `https://qianfan.baidubce.com/v2` | `https://yiyan.baidu.com` |
+| yuanbao | `https://hunyuan.tencentcloudapi.com` | `https://yuanbao.tencent.com` |
 
 ---
 
@@ -211,30 +283,34 @@ GET    /geoMonitor/result/analysis    — 单次采集的分析数据
        }
 ```
 
-### 采集器架构
+### 采集器架构（对接板块一的双模式设计）
+
+板块一已完成 `utils/api/` 和 `utils/playwright/` 两个工具包。板块二的 Collector 实现直接复用此结构：
 
 ```
 Collector 接口
-  ├── ApiCollector        (net/http 调各平台 API + search)
-  │     ├── DeepSeekAdapter
-  │     ├── QwenAdapter
-  │     ├── ZhipuAdapter
-  │     ├── DoubaoAdapter
-  │     ├── KimiAdapter
-  │     ├── WenxinAdapter
-  │     └── YuanbaoAdapter
-  └── PlaywrightCollector (playwright-go 驱动浏览器)
-        ├── DeepSeekPageAdapter
-        ├── QwenPageAdapter
-        ├── ... (各平台页面元素定位 + 交互策略)
+  ├── ApiCollector         → 复用 utils/api/    中各平台的函数签名 (apiBase, apiKey)
+  │     ├── DeepSeekAdapter   ← api.TestDeepSeek 模式 → 扩展为完整采集
+  │     ├── QwenAdapter       ← api.TestQwen
+  │     ├── ZhipuAdapter      ← api.TestZhipu
+  │     ├── DoubaoAdapter     ← api.TestDoubao
+  │     ├── KimiAdapter       ← api.TestKimi
+  │     ├── WenxinAdapter     ← api.TestWenxin
+  │     └── YuanbaoAdapter    ← api.TestYuanbao
+  └── PlaywrightCollector  → 复用 utils/playwright/ 的各平台访问模式
+        ├── DeepSeekPageAdapter   ← playwright.TestDeepSeek 模式 → 扩展为完整采集+截图
+        ├── QwenPageAdapter       ← playwright.TestQwen
+        ├── ZhipuPageAdapter      ← playwright.TestZhipu
+        ├── DoubaoPageAdapter     ← playwright.TestDoubao
+        ├── KimiPageAdapter       ← playwright.TestKimi
+        ├── WenxinPageAdapter     ← playwright.TestWenxin
+        └── YuanbaoPageAdapter    ← playwright.TestYuanbao
 ```
 
-每个平台适配器只需实现：
-```go
-type PlatformAdapter interface {
-    Collect(ctx context.Context, platform Platform, prompt string) (*CollectResult, error)
-}
-```
+**对接方式：**
+- API Collector 从 DB 查 `Mode == "api"` 的平台，取 `ApiBase` + `ApiKey`，调用 `utils/api/` 的对应函数，只需扩写请求体（把 "ping" 替换为真实 prompt + search 参数）
+- Playwright Collector 从 DB 查 `Mode == "playwright"` 的平台，取 `ApiBase`(网页 URL)，复用 `utils/playwright/playwright.go` 的浏览器生命周期（Launch/NewPage/Close），每个平台的 selector 已在连通性测试中验证，直接在此基础上添加输入→等待回答→提取→截图逻辑
+- 两种 Collector 通过 `Platform.Mode` 字段区分，无需额外路由或工厂模式
 
 ### 依赖的 GVA 模块
 
@@ -474,7 +550,7 @@ PUT    /geoMonitor/config            — 更新配置
 
 ```yaml
 geoMonitor:
-  timeout: 60s
+  timeout: 60
   parallel-limit: 3
   retry-count: 2
   playwright:
@@ -482,6 +558,24 @@ geoMonitor:
     browser-path: ""
     pool-size: 2
   screenshot-dir: "uploads/geo-monitor/"
+```
+
+### 配置结构体
+
+```go
+type Config struct {
+    Timeout       int              `mapstructure:"timeout" yaml:"timeout"`
+    ParallelLimit int              `mapstructure:"parallel-limit" yaml:"parallel-limit"`
+    RetryCount    int              `mapstructure:"retry-count" yaml:"retry-count"`
+    Playwright    PlaywrightConfig `mapstructure:"playwright" yaml:"playwright"`
+    ScreenshotDir string           `mapstructure:"screenshot-dir" yaml:"screenshot-dir"`
+}
+
+type PlaywrightConfig struct {
+    Headless   bool   `mapstructure:"headless" yaml:"headless"`
+    BrowserPath string `mapstructure:"browser-path" yaml:"browser-path"`
+    PoolSize   int    `mapstructure:"pool-size" yaml:"pool-size"`
+}
 ```
 
 ---
@@ -514,14 +608,14 @@ AI 监控分析 (父级, icon: monitor)
 
 ## 开发顺序（按功能板块）
 
-| 顺序 | 板块 | 预估 | 原因 |
+| 顺序 | 板块 | 预估 | 状态 |
 |---|---|---|---|
-| **1** | 平台管理 | 0.5 天 | 最基础，所有采集依赖平台配置 |
-| **2** | 系统配置 | 0.3 天 | 被采集器依赖 |
-| **3** | 问题采集（核心） | 3-4 天 | 核心功能，API 模式先做，Playwright 后补 |
-| **4** | 采集历史 | 0.5 天 | 依赖板块 3 的 model |
-| **5** | 对比分析 | 1 天 | 依赖板块 3 的 model 和结果数据 |
-| **6** | 定时采集 | 1 天 | 依赖板块 3 的采集器 |
+| **1** | 平台管理 | 0.5 天 | ✅ 已完成（2026-05-13） |
+| **2** | 系统配置 | 0.3 天 | 待开发 |
+| **3** | 问题采集（核心） | 3-4 天 | 待开发（基础工具包已就绪） |
+| **4** | 采集历史 | 0.5 天 | 待开发 |
+| **5** | 对比分析 | 1 天 | 待开发 |
+| **6** | 定时采集 | 1 天 | 待开发 |
 
 ---
 
@@ -531,7 +625,7 @@ AI 监控分析 (父级, icon: monitor)
 `global.GVA_DB` · `global.GVA_LOG` · `global.GVA_VP` · `global.GVA_TIMER` · `global.GVA_CONFIG` · `global.GVA_MODEL` · `middleware.JWTAuth` · `middleware.CasbinHandler` · `plugin-tool/utils` (RegisterApis / RegisterMenus / RegisterDictionaries) · `utils/request` · `utils/response` · `model/system` (SysApi / SysBaseMenu / SysDictionary)
 
 ### 新增第三方库
-`github.com/playwright-community/playwright-go` · `github.com/google/uuid` · `golang.org/x/sync/errgroup`
+`github.com/playwright-community/playwright-go` (v0.5700.1) · `github.com/sashabaranov/go-openai` · `github.com/google/uuid` · `golang.org/x/sync/errgroup`
 
 ### 复用已有第三方库
 `github.com/robfig/cron/v3` · `github.com/gin-gonic/gin` · `gorm.io/gorm` · `go.uber.org/zap` · `github.com/spf13/viper` · `github.com/pkg/errors`

@@ -1,0 +1,7 @@
+{"type":"click","text":"A\n    \n      按这个两阶段做\n      阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。","choice":"a","id":null,"timestamp":1778729628736}
+{"type":"click","text":"A\n    \n      按这个两阶段做\n      阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。","choice":"a","id":null,"timestamp":1778729629553}
+{"type":"click","text":"B\n    \n      登录能力提前\n      第一阶段就把登录任务和 session 保存一起做，避免 Playwright 测试反复失败。","choice":"b","id":null,"timestamp":1778729629964}
+{"type":"click","text":"A\n    \n      按这个两阶段做\n      阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。","choice":"a","id":null,"timestamp":1778729630408}
+{"type":"click","text":"A\n    \n      按这个两阶段做\n      阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。","choice":"a","id":null,"timestamp":1778729668332}
+{"type":"click","text":"A\n    \n      按这个两阶段做\n      阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。","choice":"a","id":null,"timestamp":1778729668534}
+{"type":"click","text":"A\n    \n      按这个两阶段做\n      阶段 1 先解决当前 /collect/run 结果和失败日志；阶段 2 做二维码登录。","choice":"a","id":null,"timestamp":1778729670474}

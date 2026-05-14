@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test *)",
+      "Bash(cd /d/d:/geo/server && go test ./plugin/geoMonitor/service -run TestSummarizeTaskStatus -v)",
+      "Read(//d/d:/geo/**)",
+      "Bash(cd /mnt/d/geo/server && go test ./plugin/geoMonitor/service -run TestSummarizeTaskStatus -v)",
+      "Read(//mnt/d/geo/**)",
+      "Read(//c/Users/Administrator/.claude/skills/brainstorming/**)",
+      "Read(//c/Users/Administrator/.cc-switch/skills/brainstorming/**)",
+      "Bash(\"C:/Users/Administrator/.claude/skills/brainstorming/scripts/start-server.sh\" --project-dir \"d:/geo\")",
+      "Bash(python -)",
+      "Bash(gofmt -w \"server/plugin/geoMonitor/model/collection_result.go\" \"server/plugin/geoMonitor/model/playwright_auth_session.go\" \"server/plugin/geoMonitor/model/request/playwright_session.go\" \"server/plugin/geoMonitor/service/collector.go\" \"server/plugin/geoMonitor/service/collector_log.go\" \"server/plugin/geoMonitor/service/collector_log_test.go\" \"server/plugin/geoMonitor/service/collector_types.go\" \"server/plugin/geoMonitor/service/api_collector.go\" \"server/plugin/geoMonitor/service/playwright_collector.go\" \"server/plugin/geoMonitor/service/playwright_session.go\" \"server/plugin/geoMonitor/api/enter.go\" \"server/plugin/geoMonitor/api/playwright_session.go\" \"server/plugin/geoMonitor/router/enter.go\" \"server/plugin/geoMonitor/router/playwright_session.go\" \"server/plugin/geoMonitor/initialize/router.go\" \"server/plugin/geoMonitor/initialize/gorm.go\" \"server/plugin/geoMonitor/utils/playwright/playwright.go\" \"server/plugin/geoMonitor/utils/playwright/collect.go\" \"server/plugin/geoMonitor/utils/playwright/collector.go\")",
+      "Bash(npm run *)",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/initialize/api.go\" \"d:/geo/server/plugin/geoMonitor/service/playwright_session.go\")",
+      "Bash(git -C \"D:/geo\" diff -- \"server/plugin/geoMonitor/service/playwright_session.go\" \"server/plugin/geoMonitor/service/api_collector.go\" \"server/plugin/geoMonitor/utils/playwright/collect.go\")",
+      "Bash(go doc *)",
+      "Bash(go env *)",
+      "Read(//c/Users/Administrator/go/pkg/mod/github.com/playwright-community/**)",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/utils/api/collect.go\" \"d:/geo/server/plugin/geoMonitor/service/api_collector.go\" \"d:/geo/server/plugin/geoMonitor/utils/playwright/collect.go\" \"d:/geo/server/plugin/geoMonitor/service/playwright_collector.go\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/manual_collect_test.go\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/playwright_session.go\" \"d:/geo/server/plugin/geoMonitor/service/playwright_collector.go\" \"d:/geo/server/plugin/geoMonitor/service/manual_collect_test.go\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/playwright_collector.go\" \"d:/geo/server/plugin/geoMonitor/service/playwright_session.go\" \"d:/geo/server/plugin/geoMonitor/service/manual_collect_test.go\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/platform.go\" \"d:/geo/server/plugin/geoMonitor/api/platform.go\" \"d:/geo/web/src/plugin/geoMonitor/view/platform.vue\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/platform.go\" \"d:/geo/server/plugin/geoMonitor/api/platform.go\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/platform.go\")",
+      "Bash(gofmt -w \"d:/geo/server/plugin/geoMonitor/service/playwright_session.go\")",
+      "Skill(playwright-cli)",
+      "Skill(playwright-cli:*)",
+      "Bash(where.exe playwright-cli *)",
+      "Bash(where.exe npx *)",
+      "Bash(where.exe node *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "mcpServers": {
+    "GVA_MCP": {
+      "type": "streamableHttp",
+      "headers": {
+        "x-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVVUlEIjoiMzQzMzUyMDctZmY1MC00OGU3LWExYzMtNTdiYzdhNjVlM2IzIiwiSUQiOjEsIlVzZXJuYW1lIjoiYWRtaW4iLCJOaWNrTmFtZSI6Ik1yLuWlh-a3vCIsIkF1dGhvcml0eUlkIjo4ODgsIkJ1ZmZlclRpbWUiOjg2NDAwLCJpc3MiOiJxbVBsdXMiLCJhdWQiOlsiR1ZBIl0sImV4cCI6MTc3OTA5NTkxNCwibmJmIjoxNzc4NDkxMTE0fQ.A4rh1VPTB0vQPvjhdf66JZOIt6gNgL_6H-ihHzfrhuk"
+      },
+      "url": "http://127.0.0.1:8889/mcp"
+    }
+  }
+}

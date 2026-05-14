@@ -1,6 +1,7 @@
 {
   "mcpServers": {
     "GVA_MCP": {
+      "type": "streamableHttp",
       "headers": {
         "x-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVVUlEIjoiMzQzMzUyMDctZmY1MC00OGU3LWExYzMtNTdiYzdhNjVlM2IzIiwiSUQiOjEsIlVzZXJuYW1lIjoiYWRtaW4iLCJOaWNrTmFtZSI6Ik1yLuWlh-a3vCIsIkF1dGhvcml0eUlkIjo4ODgsIkJ1ZmZlclRpbWUiOjg2NDAwLCJpc3MiOiJxbVBsdXMiLCJhdWQiOlsiR1ZBIl0sImV4cCI6MTc3OTA5NTkxNCwibmJmIjoxNzc4NDkxMTE0fQ.A4rh1VPTB0vQPvjhdf66JZOIt6gNgL_6H-ihHzfrhuk"
       },

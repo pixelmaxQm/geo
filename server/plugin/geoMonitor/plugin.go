@@ -2,6 +2,7 @@ package geoMonitor
 
 import (
 	"context"
+
 	"github.com/flipped-aurora/gin-vue-admin/server/plugin/geoMonitor/initialize"
 	"github.com/flipped-aurora/gin-vue-admin/server/plugin/geoMonitor/service"
 	interfaces "github.com/flipped-aurora/gin-vue-admin/server/utils/plugin/v2"
@@ -27,4 +28,5 @@ func (p *plugin) Register(group *gin.Engine) {
 	initialize.Gorm(ctx)
 	initialize.Router(group)
 	service.Service.Platform.InitSeedData()
+	_ = service.Service.Collector.InitPlaywright()
 }

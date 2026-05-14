@@ -92,5 +92,7 @@
   "/src/plugin/auto/view/pubPlug/pubPlug.vue": "PubPlug",
   "/src/plugin/auto/view/skills/index.vue": "Index",
   "/src/plugin/email/view/index.vue": "Email",
-  "/src/plugin/geoMonitor/view/platform.vue": "GeoMonitorPlatform"
+  "/src/plugin/geoMonitor/view/collect.vue": "GeoMonitorCollect",
+  "/src/plugin/geoMonitor/view/platform.vue": "GeoMonitorPlatform",
+  "/src/plugin/geoMonitor/view/topic.vue": "GeoMonitorTopic"
 }
