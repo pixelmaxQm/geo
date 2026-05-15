@@ -71,6 +71,7 @@ func (s *collector) Run(req geoReq.RunCollectionRequest, userID uint, userName s
 				Status:         ResultStatusSuccess,
 				ErrorMsg:       output.ErrorMsg,
 				Citations:      output.Citations,
+				AnalysisJSON:   output.AnalysisJSON,
 				ScreenshotPath: output.ScreenshotPath,
 				DurationMs:     output.DurationMs,
 				RawResponse:    output.RawResponse,
@@ -86,6 +87,9 @@ func (s *collector) Run(req geoReq.RunCollectionRequest, userID uint, userName s
 				}
 			}
 			if err := global.GVA_DB.Create(&record).Error; err != nil {
+				return err
+			}
+			if err := saveCollectionCitations(record.ID, output.CitationItems); err != nil {
 				return err
 			}
 			mu.Lock()
@@ -114,6 +118,24 @@ func (s *collector) Run(req geoReq.RunCollectionRequest, userID uint, userName s
 	}
 
 	return RunCollectionResponse{TaskID: task.ID, Status: finalStatus, Results: results}, nil
+}
+
+func saveCollectionCitations(collectionResultID uint, items []CitationItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	records := make([]model.CollectionCitation, 0, len(items))
+	for i, item := range items {
+		records = append(records, model.CollectionCitation{
+			CollectionResultID: collectionResultID,
+			Title:              item.Title,
+			URL:                item.URL,
+			Icon:               item.Icon,
+			Summary:            item.Snippet,
+			Sort:               i + 1,
+		})
+	}
+	return global.GVA_DB.Create(&records).Error
 }
 
 func (s *collector) collectOne(taskID uint, platform model.Platform, prompt string, mode string) (CollectOutput, error) {

@@ -22,6 +22,7 @@ func Gorm(ctx context.Context) {
 		new(model.MonitorTopic),
 		new(model.CollectionTask),
 		new(model.CollectionResult),
+		new(model.CollectionCitation),
 		new(model.PlaywrightAuthSession),
 	)
 	if err != nil {

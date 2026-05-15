@@ -1,13 +1,15 @@
 package service
 
 type CollectOutput struct {
-	Answer         string `json:"answer"`
-	Citations      string `json:"citations"`
-	ScreenshotPath string `json:"screenshotPath"`
-	DurationMs     int    `json:"durationMs"`
-	RawResponse    string `json:"rawResponse"`
-	RunLog         string `json:"runLog"`
-	ErrorMsg       string `json:"errorMsg"`
+	Answer         string         `json:"answer"`
+	Citations      string         `json:"citations"`
+	CitationItems  []CitationItem `json:"citationItems"`
+	AnalysisJSON   string         `json:"analysisJson"`
+	ScreenshotPath string         `json:"screenshotPath"`
+	DurationMs     int            `json:"durationMs"`
+	RawResponse    string         `json:"rawResponse"`
+	RunLog         string         `json:"runLog"`
+	ErrorMsg       string         `json:"errorMsg"`
 }
 
 const (

@@ -9,17 +9,20 @@ type CitationItem struct {
 	Index   int            `json:"index"`
 	Title   string         `json:"title"`
 	URL     string         `json:"url"`
+	Icon    string         `json:"icon,omitempty"`
 	Snippet string         `json:"snippet"`
 	Source  string         `json:"source"`
 	Raw     map[string]any `json:"raw,omitempty"`
 }
 
 type RunLogItem struct {
-	Step       string `json:"step"`
-	Status     string `json:"status"`
-	Message    string `json:"message"`
-	DurationMs int64  `json:"durationMs"`
-	Time       string `json:"time"`
+	Step           string         `json:"step"`
+	Status         string         `json:"status"`
+	Message        string         `json:"message"`
+	DurationMs     int64          `json:"durationMs"`
+	Time           string         `json:"time"`
+	ScreenshotPath string         `json:"screenshotPath,omitempty"`
+	Meta           map[string]any `json:"meta,omitempty"`
 }
 
 type RunLog struct {
@@ -32,6 +35,10 @@ func NewRunLog() *RunLog {
 
 func (l *RunLog) Add(step string, status string, message string, durationMs int64) {
 	l.items = append(l.items, RunLogItem{Step: step, Status: status, Message: message, DurationMs: durationMs, Time: time.Now().Format(time.RFC3339)})
+}
+
+func (l *RunLog) AddWithDetails(step string, status string, message string, durationMs int64, screenshotPath string, meta map[string]any) {
+	l.items = append(l.items, RunLogItem{Step: step, Status: status, Message: message, DurationMs: durationMs, Time: time.Now().Format(time.RFC3339), ScreenshotPath: screenshotPath, Meta: meta})
 }
 
 func (l *RunLog) JSON() string {
@@ -104,6 +111,7 @@ func appendCitationArray(value any, source string, items *[]CitationItem) {
 		citation := CitationItem{
 			Title:   firstString(obj, "title", "name"),
 			URL:     firstString(obj, "url", "link", "href"),
+			Icon:    firstString(obj, "icon", "icon_url", "iconUrl", "favicon"),
 			Snippet: firstString(obj, "snippet", "content", "summary", "text"),
 			Source:  source,
 			Raw:     obj,

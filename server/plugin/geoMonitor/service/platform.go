@@ -15,6 +15,9 @@ import (
 
 var Platform = new(platform)
 
+var collectByCodeForPlatformTest = playwright.CollectByCode
+var latestAuthorizedStorageStatePathForPlatformTest = latestAuthorizedStorageStatePath
+
 type platform struct{}
 
 // seedPlatforms 7 个真实平台预设（不含 API Key，需管理员手动填入）
@@ -138,7 +141,8 @@ func (s *platform) testPlaywrightWithSnapshot(p model.Platform) PlatformTestResu
 		return result
 	}
 	screenshotPath := filepath.ToSlash(filepath.Join("uploads", "file", fmt.Sprintf("gm-test-platform-%d-%d.png", p.ID, time.Now().UnixNano())))
-	collectResult, err := playwright.CollectByCode(p.Code, p.ApiBase, "ping", screenshotPath, "")
+	storageStatePath := latestAuthorizedStorageStatePathForPlatformTest(p.ID)
+	collectResult, err := collectByCodeForPlatformTest(p.Code, p.ApiBase, "ping", screenshotPath, storageStatePath)
 	result.ScreenshotPath = screenshotPath
 	if collectResult != nil {
 		result.ScreenshotPath = collectResult.ScreenshotPath
@@ -152,6 +156,10 @@ func (s *platform) testPlaywrightWithSnapshot(p model.Platform) PlatformTestResu
 	}
 	result.Ok = true
 	result.Status = "connected"
+	if storageStatePath != "" {
+		result.Message = "网页可达（已复用授权会话）"
+		return result
+	}
 	result.Message = "网页可达"
 	return result
 }

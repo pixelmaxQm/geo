@@ -7,7 +7,7 @@ func CollectByCode(code string, webURL string, prompt string, screenshotPath str
 	if err != nil {
 		return nil, err
 	}
-	return collectWithPageState(webURL, prompt, screenshotPath, selector, storageStatePath)
+	return collectWithPageState(webURL, prompt, screenshotPath, selector, storageStatePath, code)
 }
 
 func selectorForCode(code string) (string, error) {

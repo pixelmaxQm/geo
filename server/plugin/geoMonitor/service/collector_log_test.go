@@ -47,7 +47,7 @@ func TestExtractCitationsFromRawResponsePreservesOrder(t *testing.T) {
 func TestRunLogJSONRecordsSteps(t *testing.T) {
 	log := NewRunLog()
 	log.Add("goto", "success", "页面加载完成", 15)
-	log.Add("submit", "failed", "提交失败", 9)
+	log.AddWithDetails("submit", "failed", "提交失败", 9, "uploads/file/step-submit.png", map[string]any{"selector": "#chat-input"})
 
 	got := log.JSON()
 
@@ -57,5 +57,11 @@ func TestRunLogJSONRecordsSteps(t *testing.T) {
 	}
 	if decoded[0].Step != "goto" || decoded[1].Status != "failed" {
 		t.Fatalf("decoded = %+v", decoded)
+	}
+	if decoded[1].ScreenshotPath != "uploads/file/step-submit.png" {
+		t.Fatalf("expected screenshot path in run log, got %+v", decoded[1])
+	}
+	if decoded[1].Meta["selector"] != "#chat-input" {
+		t.Fatalf("expected selector meta in run log, got %+v", decoded[1])
 	}
 }

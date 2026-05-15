@@ -275,10 +275,12 @@ func (s *playwrightSession) captureRuntimeSnapshot(session *model.PlaywrightAuth
 	if session == nil {
 		return PlaywrightSessionStatusFailed, "", nil
 	}
+	inputVisible := hasVisibleLocator(page, inputSelectorForPlatform(session.PlatformCode))
 	if isAuthorizedSession(page, session.PlatformCode) {
 		if err := s.saveAuthorizedSession(session.ID, session, page); err != nil {
 			return PlaywrightSessionStatusFailed, "", err
 		}
+		_ = global.GVA_DB.Model(&model.PlaywrightAuthSession{}).Where("id = ?", session.ID).Update("error_msg", buildSessionDiagnosticsMessage(PlaywrightSessionStatusAuthorized, page.URL(), pageTitle(page), inputVisible)).Error
 		return PlaywrightSessionStatusAuthorized, "", nil
 	}
 	if isUnauthorizedSession(page, session.PlatformCode) {
@@ -287,6 +289,8 @@ func (s *playwrightSession) captureRuntimeSnapshot(session *model.PlaywrightAuth
 	if err := ensureParentDir(session.ScreenshotPath); err == nil && session.ScreenshotPath != "" {
 		_, _ = page.Screenshot(pw.PageScreenshotOptions{Path: pw.String(session.ScreenshotPath), FullPage: pw.Bool(true)})
 	}
+	diagnostics := buildSessionDiagnosticsMessage(PlaywrightSessionStatusWaitingScan, page.URL(), pageTitle(page), inputVisible)
+	_ = global.GVA_DB.Model(&model.PlaywrightAuthSession{}).Where("id = ?", session.ID).Update("error_msg", diagnostics).Error
 	return PlaywrightSessionStatusWaitingScan, session.ScreenshotPath, nil
 }
 
@@ -417,10 +421,31 @@ func pwutilsNewPageForSession() (pw.Page, func(), error) {
 func isAuthorizedSession(page pw.Page, platformCode string) bool {
 	switch platformCode {
 	case "deepseek":
-		return page.URL() == "https://chat.deepseek.com/" && hasVisibleLocator(page, "textarea[placeholder='给 DeepSeek 发送消息 '], #chat-input, textarea[placeholder], .chat-input")
+		return !strings.Contains(page.URL(), "/sign_in") && hasVisibleLocator(page, inputSelectorForPlatform(platformCode))
 	default:
 		return false
 	}
+}
+
+func inputSelectorForPlatform(platformCode string) string {
+	switch platformCode {
+	case "deepseek":
+		return "textarea[placeholder='给 DeepSeek 发送消息 '], #chat-input, textarea[placeholder], .chat-input"
+	default:
+		return ""
+	}
+}
+
+func buildSessionDiagnosticsMessage(status string, url string, title string, inputVisible bool) string {
+	return fmt.Sprintf("status=%s url=%s title=%s inputVisible=%t", status, url, title, inputVisible)
+}
+
+func pageTitle(page pw.Page) string {
+	title, err := page.Title()
+	if err != nil {
+		return ""
+	}
+	return title
 }
 
 func hasVisibleLocator(page pw.Page, selector string) bool {

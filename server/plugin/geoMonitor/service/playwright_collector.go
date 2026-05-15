@@ -8,6 +8,7 @@ import (
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/plugin/geoMonitor/model"
+	llmutils "github.com/flipped-aurora/gin-vue-admin/server/plugin/geoMonitor/utils/llm"
 	pwutils "github.com/flipped-aurora/gin-vue-admin/server/plugin/geoMonitor/utils/playwright"
 )
 
@@ -30,12 +31,16 @@ func (s *collector) collectWithPlaywright(platform model.Platform, prompt string
 		}
 		output := CollectOutput{
 			Citations:      "[]",
+			AnalysisJSON:   "[]",
 			ScreenshotPath: screenshotPath,
 			DurationMs:     int(time.Since(started).Milliseconds()),
 			ErrorMsg:       err.Error(),
 		}
 		if result != nil {
 			output.Answer = result.Answer
+			output.CitationItems = toServiceCitationItems(result.Citations)
+			output.Citations = BuildOrderedCitationsJSON(output.CitationItems)
+			output.AnalysisJSON = analyzeKeywordRankingJSON(prompt, output.Answer, output.Citations)
 			output.ScreenshotPath = result.ScreenshotPath
 			output.RawResponse = result.RawResponse
 			output.RunLog = result.RunLog
@@ -48,14 +53,48 @@ func (s *collector) collectWithPlaywright(platform model.Platform, prompt string
 		return output, err
 	}
 
+	citationItems := toServiceCitationItems(result.Citations)
+	citationsJSON := BuildOrderedCitationsJSON(citationItems)
+	analysisJSON := analyzeKeywordRankingJSON(prompt, result.Answer, citationsJSON)
 	return CollectOutput{
 		Answer:         result.Answer,
-		Citations:      "[]",
+		Citations:      citationsJSON,
+		CitationItems:  citationItems,
+		AnalysisJSON:   analysisJSON,
 		ScreenshotPath: result.ScreenshotPath,
 		DurationMs:     int(time.Since(started).Milliseconds()),
 		RawResponse:    result.RawResponse,
 		RunLog:         result.RunLog,
 	}, nil
+}
+
+func analyzeKeywordRankingJSON(question string, answer string, citations string) string {
+	var platform model.Platform
+	if global.GVA_DB == nil {
+		return "[]"
+	}
+	if err := global.GVA_DB.Where("code = ? AND mode = ? AND status = ?", "zhipu", CollectModeAPI, 1).First(&platform).Error; err != nil {
+		return "[]"
+	}
+	ranked, err := llmutils.RankQuestionKeywordsWithGLM(llmutils.KeywordAnalysisInput{
+		Question:  question,
+		Answer:    answer,
+		Citations: citations,
+		APIBase:   platform.ApiBase,
+		APIKey:    platform.ApiKey,
+	})
+	if err != nil {
+		return "[]"
+	}
+	return marshalKeywordAnalysisJSON(ranked)
+}
+
+func toServiceCitationItems(items []pwutils.CitationItem) []CitationItem {
+	result := make([]CitationItem, 0, len(items))
+	for _, item := range items {
+		result = append(result, CitationItem{Title: item.Title, URL: item.URL, Icon: item.Icon, Snippet: item.Snippet, Source: item.Source})
+	}
+	return result
 }
 
 func latestAuthorizedStorageStatePath(platformID uint) string {

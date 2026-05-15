@@ -14,6 +14,7 @@ type CollectionResult struct {
 	Status         string `json:"status" gorm:"index;comment:执行结果状态"`
 	ErrorMsg       string `json:"errorMsg" gorm:"type:text;comment:错误信息"`
 	Citations      string `json:"citations" gorm:"type:longtext;comment:引用信息JSON"`
+	AnalysisJSON   string `json:"analysisJson" gorm:"type:longtext;comment:关键词分析JSON"`
 	ScreenshotPath string `json:"screenshotPath" gorm:"comment:截图路径"`
 	DurationMs     int    `json:"durationMs" gorm:"comment:耗时毫秒"`
 	RawResponse    string `json:"rawResponse" gorm:"type:longtext;comment:原始响应"`
